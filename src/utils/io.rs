@@ -1,6 +1,6 @@
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use std::fs::File;
-use std::io::{self, BufWriter, BufReader};
+use std::io::{self, BufReader, BufWriter};
 use std::process::Command;
 use std::str::FromStr;
 
@@ -53,7 +53,6 @@ pub fn clear_console() {
     }
 }
 
-
 /// Функция для получения значения из консоли.
 ///
 /// Эта функция использует обобщенные типы, чтобы можно было получать разные типы данных,
@@ -68,7 +67,11 @@ pub fn clear_console() {
 /// # Возвращаемое значение
 ///
 /// Возвращает значение типа `T`, которое было введено пользователем и успешно обработано.
-pub fn get_console<T>(msg: &str, error_msg: &str, check_func: Option<Box<dyn Fn(T)->bool>>) -> T
+pub fn get_number_console<T>(
+    msg: &str,
+    error_msg: &str,
+    check_func: Option<Box<dyn Fn(T) -> bool>>,
+) -> T
 where
     T: FromStr + Copy,
 {
@@ -87,7 +90,8 @@ where
             Ok(value) => {
                 // Если предоставлена функция проверки, вызываем её
                 if let Some(ref func) = check_func {
-                    if !func(value) { // Вызываем функцию
+                    if !func(value) {
+                        // Вызываем функцию
                         continue;
                     }
                 }
@@ -95,5 +99,31 @@ where
             }
             Err(_) => println!("{}", error_msg), // Обработка ошибки парсинга
         }
+    }
+}
+
+pub fn get_string_console(
+    msg: &str,
+    error_msg: &str,
+    check_func: Option<Box<dyn Fn(&String) -> bool>>,
+) -> String {
+    loop {
+        println!("{}", msg);
+        let mut input = String::new();
+
+        // Чтение строки из консоли
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("{}", error_msg);
+            continue;
+        }
+
+        let input = input.trim().to_string();
+        // Если предоставлена функция проверки, вызываем её
+        if let Some(ref func) = check_func {
+            if !func(&input) {
+                continue;
+            }
+        }
+        return input; // Возвращаем успешно полученное значение
     }
 }
