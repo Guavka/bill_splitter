@@ -85,18 +85,25 @@ pub fn add_people(person_set: &mut HashSet<Person>) {
     }
 }
 
+/// Добавляет новый заказ в вектор заказов.
+///
+/// Эта функция запрашивает у пользователя информацию о заказе, включая название заведения,
+/// дату, тип оплаты, продукты и чаевые. Все введенные данные сохраняются в векторе `orders_vec`.
+///
+/// # Параметры
+///
+/// - `orders_vec`: Изменяемая ссылка на вектор `Vec<Bill>`, в который будут добавлены новые заказы.
+///
+/// # Примечания
+///
+/// Функция будет продолжать запрашивать ввод до тех пор, пока пользователь не решит прекратить добавление заказов.
 pub fn add_order(orders_vec: &mut Vec<Bill>) {
-    loop {
-        let name: String = get_string_not_empty(
-            "Введите название заведения:",
-            "Ошибка при чтении значения!",
-            "Поле не должно быть пустым!",
-        );
-        let date: String = get_string_not_empty(
-            "Введите дату:",
-            "Ошибка при чтении значения!",
-            "Поле не должно быть пустым!",
-        );
+    /// Запрашивает у пользователя тип оплаты и возвращает его.
+    ///
+    /// # Возвращаемое значение
+    ///
+    /// Возвращает значение типа `EMoneyType`, которое соответствует выбранному пользователем типу оплаты.
+    fn get_money_type() -> EMoneyType {
         let money_type_index = get_number_console(
             "1.Карта\n2.Наличные",
             "Неверный пункт меню",
@@ -108,24 +115,27 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
                 true
             })),
         );
-
-        let money_type = match money_type_index {
+        match money_type_index {
             1 => EMoneyType::Card,
             _ => EMoneyType::Money,
-        };
-
+        }
+    }
+    /// Запрашивает у пользователя информацию о продуктах и возвращает вектор `Vec<BillItem>`.
+    ///
+    /// # Возвращаемое значение
+    ///
+    /// Возвращает вектор `Vec<BillItem>`, содержащий информацию о продуктах в заказе.
+    fn add_items() -> Vec<BillItem> {
         let mut items = vec![];
-
         loop {
-            let item_name: String = get_string_not_empty(
+            let item_name = get_string_not_empty(
                 "Введите название продукта:",
                 "Ошибка при чтении значения!",
                 "Поле не должно быть пустым!",
             );
-            let count: usize =
+            let count =
                 get_number_console("Введите количество:", "Ошибка при чтении значения!", None);
-
-            let price: f64 = get_number_console(
+            let price = get_number_console(
                 "Введите сумму:",
                 "Ошибка при чтении значения!",
                 Some(Box::new(|x: f64| -> bool {
@@ -136,19 +146,24 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
                     true
                 })),
             );
-
             items.push(BillItem {
                 name: item_name,
                 count,
                 price,
             });
-
-            if is_exit("Добавить еще?\n1.Да\n2.Нет") {
+            if is_exit("Добавить еще продукт?\n1.Да\n2.Нет") {
                 break;
             }
         }
-
-        let tips: f64 = get_number_console(
+        items
+    }
+    /// Запрашивает у пользователя сумму чаевых и возвращает ее.
+    ///
+    /// # Возвращаемое значение
+    ///
+    /// Возвращает сумму чаевых типа `f64`, которая должна быть больше или равна 0.
+    fn get_tips() -> f64 {
+        get_number_console(
             "Введите сумму чаевых:",
             "Ошибка при чтении значения!",
             Some(Box::new(|x: f64| -> bool {
@@ -158,10 +173,22 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
                 }
                 true
             })),
+        )
+    }
+    loop {
+        let name = get_string_not_empty(
+            "Введите название заведения:",
+            "Ошибка при чтении значения!",
+            "Поле не должно быть пустым!",
         );
-
-        println!("Чек создан и добавлен");
-
+        let date = get_string_not_empty(
+            "Введите дату:",
+            "Ошибка при чтении значения!",
+            "Поле не должно быть пустым!",
+        );
+        let money_type = get_money_type();
+        let items = add_items();
+        let tips = get_tips();
         let bill = Bill {
             name,
             date,
@@ -169,10 +196,8 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
             items,
             tips,
         };
-        println!("{:?}", bill);
-
+        println!("Чек создан и добавлен: {:?}", bill);
         orders_vec.push(bill);
-
         if is_exit("Добавить еще чек?\n1.Да\n2.Нет") {
             break;
         }
