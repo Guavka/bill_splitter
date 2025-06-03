@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum EMoneyType {
@@ -10,7 +10,7 @@ pub enum EMoneyType {
 #[derive(Clone)]
 pub struct BillItem {
     pub name: String,
-    pub count: u32,
+    pub count: usize,
     pub price: f64,
 }
 
@@ -21,5 +21,4 @@ pub struct Bill {
     pub money_type: EMoneyType,
     pub items: Vec<BillItem>,
     pub tips: f64,
-    pub is_auto_tips: bool
 }
