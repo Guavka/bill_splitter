@@ -1,7 +1,6 @@
 use crate::models::bill::{Bill, BillItem, EMoneyType};
 use crate::models::person::Person;
-use crate::utils::io::{clear_console, get_number_console, get_string_not_empty};
-use std::collections::HashSet;
+use crate::utils::io::{clear_console, get_number_console, get_number_range, get_string_not_empty};
 
 pub fn get_menu_index(menu_items: &[&str]) -> usize {
     loop {
@@ -10,35 +9,24 @@ pub fn get_menu_index(menu_items: &[&str]) -> usize {
             println!("{}.{}", index + 1, value);
         }
 
-        let menu_len = menu_items.len();
-        let index: usize = get_number_console(
+        get_number_range(
             "Выберите пункт меню:",
+            1,
+            menu_items.len(),
             "Ошибка: введите корректное целое число.",
-            Some(Box::new(move |x: usize| -> bool {
-                if x < 1 || x > menu_len {
-                    println!("Число должно быть от 1 до {}", menu_len);
-                    return false;
-                }
-                true
-            })),
+            "Число должно быть в диапазоне",
         );
-        return index;
     }
 }
 
 pub fn is_exit(msg: &str) -> bool {
-    let is_exit_index: u8 = get_number_console(
+    get_number_range(
         msg,
-        "Неверный пункт меню",
-        Some(Box::new(|x: u8| -> bool {
-            if x < 1 || x > 2 {
-                println!("Число должно быть от 1 до 2");
-                return false;
-            }
-            true
-        })),
-    );
-    is_exit_index == 2
+        1,
+        2,
+        "Ошибка: введите корректное целое число.",
+        "Число должно быть в диапазоне",
+    ) == 2
 }
 
 /// Добавляет новых пользователей в множество.
@@ -58,9 +46,10 @@ pub fn is_exit(msg: &str) -> bool {
 ///
 /// Функция будет продолжать запрашивать данные у пользователя до тех пор,
 /// пока он не решит прекратить добавление новых пользователей.
-pub fn add_people(person_set: &mut HashSet<Person>) {
+pub fn add_people(person_vec: &mut Vec<Person>) {
     loop {
         clear_console();
+
         let name: String = get_string_not_empty(
             "Введите имя:",
             "Ошибка при чтении значения!",
@@ -72,7 +61,9 @@ pub fn add_people(person_set: &mut HashSet<Person>) {
             "Поле не должно быть пустым!",
         );
 
-        let is_not_exist = person_set.insert(Person::new(name.clone(), surname.clone()));
+        let person = Person::new(name.clone(), surname.clone());
+        let is_not_exist = person_vec.iter().any(|p| p.get_id() == person.get_id());
+
         if is_not_exist {
             println!("Пользователь {} {} добавлен", name, surname);
         } else {
@@ -97,24 +88,21 @@ pub fn add_people(person_set: &mut HashSet<Person>) {
 /// # Примечания
 ///
 /// Функция будет продолжать запрашивать ввод до тех пор, пока пользователь не решит прекратить добавление заказов.
-pub fn add_order(orders_vec: &mut Vec<Bill>) {
+pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
     /// Запрашивает у пользователя тип оплаты и возвращает его.
     ///
     /// # Возвращаемое значение
     ///
     /// Возвращает значение типа `EMoneyType`, которое соответствует выбранному пользователем типу оплаты.
     fn get_money_type() -> EMoneyType {
-        let money_type_index = get_number_console(
+        let money_type_index = get_number_range(
             "1.Карта\n2.Наличные",
-            "Неверный пункт меню",
-            Some(Box::new(|x: u8| -> bool {
-                if x < 1 || x > 2 {
-                    println!("Число должно быть от 1 до 2");
-                    return false;
-                }
-                true
-            })),
+            1,
+            2,
+            "Ошибка: введите корректное целое число.",
+            "Число должно быть в диапазоне",
         );
+
         match money_type_index {
             1 => EMoneyType::Card,
             _ => EMoneyType::Money,
@@ -175,7 +163,33 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
             })),
         )
     }
+
     loop {
+        println!("Кто платит?");
+        for (index, person) in persons_vec.iter().enumerate() {
+            println!(
+                "{}.{} {}",
+                index + 1,
+                person.get_name(),
+                person.get_surname()
+            );
+        }
+        println!("{}. Добавить другого пользователя", persons_vec.len());
+
+        let index = get_number_range(
+            "Введите номер меню:",
+            1,
+            persons_vec.len(),
+            "Ошибка чтения значения",
+            "Число должно быть в диапазоне",
+        );
+
+        if index - 1 == persons_vec.len() {
+            add_people(persons_vec);
+            continue;
+        }
+        let who_pay: Person = persons_vec[index - 1].clone();
+
         let name = get_string_not_empty(
             "Введите название заведения:",
             "Ошибка при чтении значения!",
@@ -190,6 +204,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>) {
         let items = add_items();
         let tips = get_tips();
         let bill = Bill {
+            who_pay,
             name,
             date,
             money_type,

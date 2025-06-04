@@ -1,39 +1,7 @@
-use serde::{de::DeserializeOwned, Serialize};
-use std::fs::File;
-use std::io::{self, BufReader, BufWriter};
+use std::io;
 use std::process::Command;
 use std::str::FromStr;
 
-/// Функция для записи данных из `Vec<T>` в формате JSON в файл.
-///
-/// # Аргументы
-///
-/// * `filename` - Имя файла, в который будут записаны данные.
-/// * `data` - Вектор с данными, которые нужно записать.
-///
-/// # Возвращаемое значение
-///
-/// Возвращает `io::Result<()>`, которое указывает на успешность операции.
-pub fn write_vector_to_file<T: Serialize>(filename: &str, data: &[T]) -> io::Result<()> {
-    let file = File::create(filename)?;
-    let writer = BufWriter::new(file);
-    serde_json::to_writer(writer, data).map_err(|e| io::Error::new(io::ErrorKind::Other, e))
-}
-
-/// Функция для чтения данных из `Vec<T>` из файла формата JSON.
-///
-/// # Аргументы
-///
-/// * `filename` - Имя файла, из которого будут прочитаны данные.
-///
-/// # Возвращаемое значение
-///
-/// Возвращает `io::Result<Vec<T>>`, содержащий вектор данных указанного типа из файла.
-pub fn read_vector_from_file<T: DeserializeOwned>(filename: &str) -> io::Result<Vec<T>> {
-    let file = File::open(filename)?;
-    let reader = BufReader::new(file);
-    serde_json::from_reader(reader).map_err(|e| io::Error::new(io::ErrorKind::Other, e))
-}
 
 /// Функция для очистки консоли.
 ///
@@ -50,6 +18,21 @@ pub fn clear_console() {
         Command::new("clear")
             .status()
             .expect("Не удалось очистить консоль");
+    }
+}
+
+fn get_console(msg: &str, error_msg: &str) -> String {
+    loop {
+        println!("{}", msg);
+        let mut input = String::new();
+
+        // Чтение строки из консоли
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("{}", error_msg);
+            continue;
+        }
+
+        return input.trim().to_string();
     }
 }
 
@@ -76,17 +59,10 @@ where
     T: FromStr + Copy,
 {
     loop {
-        println!("{}", msg);
-        let mut input = String::new();
-
-        // Чтение строки из консоли
-        if io::stdin().read_line(&mut input).is_err() {
-            println!("{}", error_msg);
-            continue;
-        }
+        let input = get_console(msg, error_msg);
 
         // Попытка парсинга введенной строки в тип T
-        match input.trim().parse::<T>() {
+        match input.parse::<T>() {
             Ok(value) => {
                 // Если предоставлена функция проверки, вызываем её
                 if let Some(ref func) = check_func {
@@ -102,22 +78,87 @@ where
     }
 }
 
+/// Запрашивает у пользователя ввод числа в заданном диапазоне.
+///
+/// Эта функция выводит сообщение `msg` и ожидает ввода от пользователя.
+/// Если происходит ошибка при чтении, выводится сообщение `error_msg`.
+/// Если введенное значение не может быть преобразовано в тип `T` или не попадает в заданный диапазон
+/// от `min_value` до `max_value`, выводится сообщение `range_msg` с указанием допустимого диапазона.
+///
+/// # Параметры
+///
+/// - `msg`: Сообщение, которое будет выведено пользователю перед запросом ввода.
+/// - `min_value`: Минимально допустимое значение для ввода.
+/// - `max_value`: Максимально допустимое значение для ввода.
+/// - `error_msg`: Сообщение, которое будет выведено в случае ошибки при чтении ввода или парсинга.
+/// - `range_msg`: Сообщение, которое будет выведено, если введенное значение не попадает в диапазон.
+///
+/// # Возвращаемое значение
+///
+/// Возвращает значение типа `T`, введенное пользователем, которое находится в заданном диапазоне.
+///
+/// # Примечания
+///
+/// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получено
+/// корректное значение, которое находится в диапазоне от `min_value` до `max_value`.
+pub fn get_number_range<T>(
+    msg: &str,
+    min_value: T,
+    max_value: T,
+    error_msg: &str,
+    range_msg: &str,
+) -> T
+where
+    T: FromStr + Copy + PartialOrd + std::fmt::Display,
+{
+    loop {
+        let input = get_console(msg, error_msg);
+
+        // Попытка парсинга введенной строки в тип T
+        match input.parse::<T>() {
+            Ok(value) => {
+                if value < min_value || value > max_value {
+                    println!("{} [{},{}]", range_msg, min_value, max_value);
+                    continue;
+                }
+                return value; // Возвращаем успешно полученное значение
+            }
+            Err(_) => println!("{}", error_msg), // Обработка ошибки парсинга
+        }
+    }
+}
+
+/// Запрашивает у пользователя ввод строки и выполняет проверку на основе предоставленной функции.
+///
+/// Эта функция выводит сообщение `msg` и ожидает ввода от пользователя.
+/// Если происходит ошибка при чтении, выводится сообщение `error_msg`.
+/// Если предоставлена функция проверки `check_func`, она будет вызвана для проверки введенной строки.
+/// Если проверка не проходит, функция запрашивает ввод повторно.
+///
+/// # Параметры
+///
+/// - `msg`: Сообщение, которое будет выведено пользователю перед запросом ввода.
+/// - `error_msg`: Сообщение, которое будет выведено в случае ошибки при чтении ввода.
+/// - `check_func`: Опциональная функция проверки, которая принимает ссылку на строку и возвращает `true`,
+///   если строка проходит проверку, и `false` в противном случае.
+///
+/// # Возвращаемое значение
+///
+/// Возвращает строку, введенную пользователем, которая может быть проверена с помощью `check_func`.
+///
+/// # Примечания
+///
+/// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена
+/// строка, которая проходит проверку (если такая функция предоставлена) или
+/// пока не произойдет ошибка при чтении.
 pub fn get_string_console(
     msg: &str,
     error_msg: &str,
     check_func: Option<Box<dyn Fn(&String) -> bool>>,
 ) -> String {
     loop {
-        println!("{}", msg);
-        let mut input = String::new();
+        let input = get_console(msg, error_msg);
 
-        // Чтение строки из консоли
-        if io::stdin().read_line(&mut input).is_err() {
-            println!("{}", error_msg);
-            continue;
-        }
-
-        let input = input.trim().to_string();
         // Если предоставлена функция проверки, вызываем её
         if let Some(ref func) = check_func {
             if !func(&input) {
@@ -130,9 +171,9 @@ pub fn get_string_console(
 
 /// Запрашивает у пользователя ввод строки и гарантирует, что она не пустая.
 ///
-/// Эта функция выводит сообщение `msg` и ожидает ввода от пользователя. 
-/// Если пользователь вводит пустую строку, функция выводит сообщение `empty_msg`. 
-/// Если происходит ошибка при чтении, выводится сообщение `error_msg`. 
+/// Эта функция выводит сообщение `msg` и ожидает ввода от пользователя.
+/// Если пользователь вводит пустую строку, функция выводит сообщение `empty_msg`.
+/// Если происходит ошибка при чтении, выводится сообщение `error_msg`.
 /// В случае пустого ввода или ошибки функция продолжает запрашивать ввод.
 ///
 /// # Параметры
@@ -147,21 +188,12 @@ pub fn get_string_console(
 ///
 /// # Примечания
 ///
-/// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена 
+/// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена
 /// непустая строка. Если ввод пустой, выводится сообщение, указанное в `empty_msg`.
 ///
 pub fn get_string_not_empty(msg: &str, error_msg: &str, empty_msg: &str) -> String {
     loop {
-        println!("{}", msg);
-        let mut input = String::new();
-
-        // Чтение строки из консоли
-        if io::stdin().read_line(&mut input).is_err() {
-            println!("{}", error_msg);
-            continue;
-        }
-
-        let input = input.trim().to_string();
+        let input = get_console(msg, error_msg);
 
         if input.is_empty() {
             println!("{}", empty_msg);
