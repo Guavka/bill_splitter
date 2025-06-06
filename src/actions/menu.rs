@@ -1,6 +1,8 @@
 use crate::models::bill::{Bill, BillItem, EMoneyType};
 use crate::models::person::Person;
-use crate::utils::io::{clear_console, get_number_console, get_number_range, get_string_not_empty};
+use crate::utils::io::{
+    clear_console, get_number_console, get_number_positive, get_number_range, get_string_not_empty,
+};
 
 pub fn get_menu_index(menu_items: &[&str]) -> usize {
     loop {
@@ -9,7 +11,7 @@ pub fn get_menu_index(menu_items: &[&str]) -> usize {
             println!("{}.{}", index + 1, value);
         }
 
-        get_number_range(
+        return get_number_range(
             "Выберите пункт меню:",
             1,
             menu_items.len(),
@@ -39,7 +41,7 @@ pub fn is_exit(msg: &str) -> bool {
 ///
 /// # Параметры
 ///
-/// - `person_set`: Изменяемая ссылка на множество `HashSet<Person>`,
+/// - `person_vec`: Изменяемая ссылка на множество `&mut Vec<Person>`,
 ///   в которое будут добавляться новые пользователи.
 ///
 /// # Примечания
@@ -62,12 +64,13 @@ pub fn add_people(person_vec: &mut Vec<Person>) {
         );
 
         let person = Person::new(name.clone(), surname.clone());
-        let is_not_exist = person_vec.iter().any(|p| p.get_id() == person.get_id());
+        let is_exist = person_vec.iter().any(|p| p.get_id() == person.get_id());
 
-        if is_not_exist {
-            println!("Пользователь {} {} добавлен", name, surname);
-        } else {
+        if is_exist {
             println!("Такой пользователь уже существует");
+        } else {
+            println!("Пользователь {} {} добавлен", name, surname);
+            person_vec.push(person);
         }
 
         if is_exit("Добавить еще?\n1.Да\n2.Нет") {
@@ -108,63 +111,85 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
             _ => EMoneyType::Money,
         }
     }
-    /// Запрашивает у пользователя информацию о продуктах и возвращает вектор `Vec<BillItem>`.
-    ///
-    /// # Возвращаемое значение
-    ///
-    /// Возвращает вектор `Vec<BillItem>`, содержащий информацию о продуктах в заказе.
-    fn add_items() -> Vec<BillItem> {
+
+    fn add_items(persons_vec: &mut Vec<Person>) -> Vec<BillItem> {
         let mut items = vec![];
         loop {
-            let item_name = get_string_not_empty(
+            let name = get_string_not_empty(
                 "Введите название продукта:",
                 "Ошибка при чтении значения!",
                 "Поле не должно быть пустым!",
             );
-            let count =
+            let mut count =
                 get_number_console("Введите количество:", "Ошибка при чтении значения!", None);
-            let price = get_number_console(
+            let price = get_number_positive(
                 "Введите сумму:",
+                0.0,
                 "Ошибка при чтении значения!",
-                Some(Box::new(|x: f64| -> bool {
-                    if x <= 0.0 {
-                        println!("Число должно быть больше 0");
-                        return false;
-                    }
-                    true
-                })),
+                "Число должно быть больше",
             );
-            items.push(BillItem {
-                name: item_name,
-                count,
-                price,
-            });
+
+            let mut local_count = count;
+            loop {
+                let who_pay = match get_person_index(persons_vec) {
+                    Some(index) => index,
+                    None => continue,
+                };
+
+                let person_count = get_number_range(
+                    "Введите количество",
+                    1,
+                    local_count,
+                    "Ошибка при чтении значения!",
+                    "Число должно быть в диапазоне",
+                );
+
+                let local_item = BillItem {
+                    name: name.clone(),
+                    count: person_count,
+                    price: price * person_count as f64 * (1.0 / count as f64),
+                };
+
+                persons_vec[who_pay].add_bill_item(local_item);
+                count -= person_count;
+                local_count = count;
+
+                if is_exit("Разделить еще?\n1.Да\n2.Нет") || count == 0 {
+                    break;
+                }
+            }
+
+            items.push(BillItem { name, count, price });
             if is_exit("Добавить еще продукт?\n1.Да\n2.Нет") {
                 break;
             }
         }
         items
     }
-    /// Запрашивает у пользователя сумму чаевых и возвращает ее.
+
+    /// Запрашивает у пользователя выбор человека из списка и возвращает индекс выбранного человека.
+    ///
+    /// Эта функция выводит список людей из вектора `persons_vec` и запрашивает у пользователя
+    /// ввод номера выбранного человека. Если пользователь выбирает опцию для добавления нового
+    /// человека, вызывается функция `add_people`, и функция возвращает `None`.
+    /// В противном случае возвращается индекс выбранного человека.
+    ///
+    /// # Параметры
+    ///
+    /// - `persons_vec`: Изменяемая ссылка на вектор `Vec<Person>`, содержащий список людей.
     ///
     /// # Возвращаемое значение
     ///
-    /// Возвращает сумму чаевых типа `f64`, которая должна быть больше или равна 0.
-    fn get_tips() -> f64 {
-        get_number_console(
-            "Введите сумму чаевых:",
-            "Ошибка при чтении значения!",
-            Some(Box::new(|x: f64| -> bool {
-                if x < 0.0 {
-                    println!("Чаевые должны быть больше 0 или равны 0");
-                    return false;
-                }
-                true
-            })),
-        )
-    }
-
-    loop {
+    /// Возвращает `Option<usize>`, где:
+    /// - `Some(usize)` — индекс выбранного человека в векторе
+    /// - `None` — если пользователь выбрал опцию для добавления нового человека.
+    ///
+    /// # Примечания
+    ///
+    /// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получен корректный номер
+    /// из меню. Если введенный номер не соответствует ни одному из существующих людей,
+    /// функция будет ожидать повторного ввода.
+    fn get_person_index(persons_vec: &mut Vec<Person>) -> Option<usize> {
         println!("Кто платит?");
         for (index, person) in persons_vec.iter().enumerate() {
             println!(
@@ -174,21 +199,29 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
                 person.get_surname()
             );
         }
-        println!("{}. Добавить другого пользователя", persons_vec.len());
+        println!("{}.Добавить пользователя", persons_vec.len() + 1);
 
         let index = get_number_range(
             "Введите номер меню:",
             1,
-            persons_vec.len(),
+            persons_vec.len() + 1,
             "Ошибка чтения значения",
             "Число должно быть в диапазоне",
         );
 
         if index - 1 == persons_vec.len() {
             add_people(persons_vec);
-            continue;
+            return None;
         }
-        let who_pay: Person = persons_vec[index - 1].clone();
+
+        Some(index - 1)
+    }
+
+    loop {
+        let who_pay = match get_person_index(persons_vec) {
+            Some(index) => index,
+            None => continue,
+        };
 
         let name = get_string_not_empty(
             "Введите название заведения:",
@@ -201,8 +234,15 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
             "Поле не должно быть пустым!",
         );
         let money_type = get_money_type();
-        let items = add_items();
-        let tips = get_tips();
+        let items = add_items(persons_vec);
+
+        let tips = get_number_positive(
+            "Введите сумму чаевых:",
+            1.0,
+            "Ошибка при чтении значения!",
+            "Чаевые должны быть больше 0",
+        );
+
         let bill = Bill {
             who_pay,
             name,

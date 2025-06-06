@@ -1,4 +1,3 @@
-use crate::models::person::Person;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,7 +16,7 @@ pub struct BillItem {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Bill {
-    pub who_pay: Person,
+    pub who_pay: usize,
     pub name: String,
     pub date: String,
     pub money_type: EMoneyType,
