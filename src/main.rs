@@ -1,4 +1,6 @@
 mod actions;
+mod mock;
+//mod mock_public;
 mod models;
 mod utils;
 
@@ -7,9 +9,19 @@ use crate::models::person::Person;
 use crate::utils::io::clear_console;
 use models::bill::*;
 
+const IS_DEBUG: bool = true;
+
 fn main() {
     let mut orders_vec: Vec<Bill> = vec![];
     let mut person_vec: Vec<Person> = vec![];
+
+    if IS_DEBUG {
+        mock::add_persons(&mut person_vec);
+        mock::add_bills(&mut orders_vec);
+
+        //mock_public::add_persons(&mut person_vec);
+        //mock_public::add_bills(&mut orders_vec);
+    }
 
     let menu_names: [&str; 6] = [
         "Добавление участников",
@@ -30,7 +42,7 @@ fn main() {
             2 => add_order(&mut orders_vec, &mut person_vec),
             3 => take_money(),
             4 => get_money(),
-            5 => reports(&person_vec),
+            5 => reports(&person_vec, &orders_vec),
             _ => return,
         }
     }

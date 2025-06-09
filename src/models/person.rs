@@ -1,20 +1,20 @@
-use crate::models::bill::BillItem;
-use serde::{Deserialize, Serialize};
+use crate::models::bill::HistoryBillItem;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug)]
 pub struct Person {
     id: String,
     name: String,
     surname: String,
-    order_vec: Vec<BillItem>,
-    credit: f64,
+    order_vec: Vec<HistoryBillItem>,
+    credit: f32,
 }
 
 impl Person {
     pub fn new(name: String, surname: String) -> Person {
-        let id = name.clone() + surname.trim();
+        use uuid::Uuid;
+        
         Person {
-            id,
+            id: Uuid::new_v4().to_string(),
             name,
             surname,
             order_vec: vec![],
@@ -32,8 +32,8 @@ impl Person {
         self.surname.clone()
     }
 
-    pub fn add_bill_item(&mut self, bill_item: BillItem) {
-        self.credit += bill_item.price;
+    pub fn add_bill_item(&mut self, bill_item: HistoryBillItem) {
+        self.credit += bill_item.item.price;
         self.order_vec.push(bill_item);
     }
 }

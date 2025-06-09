@@ -1,25 +1,29 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub enum EMoneyType {
     Money,
-    Card
+    Card,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct BillItem {
     pub name: String,
-    pub count: usize,
-    pub price: f64,
+    pub count: f32,
+    pub price: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
+pub struct HistoryBillItem {
+    pub bill_id: String,
+    pub item: BillItem,
+}
+
+#[derive(Debug)]
 pub struct Bill {
+    pub id: String,
     pub who_pay: usize,
     pub name: String,
     pub date: String,
     pub money_type: EMoneyType,
     pub items: Vec<BillItem>,
-    pub tips: f64,
+    pub tips: f32,
 }

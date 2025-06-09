@@ -1,4 +1,4 @@
-use crate::models::bill::{Bill, BillItem, EMoneyType};
+use crate::models::bill::{Bill, BillItem, EMoneyType, HistoryBillItem};
 use crate::models::person::Person;
 use crate::utils::io::{
     clear_console, get_number_console, get_number_positive, get_number_range, get_string_not_empty,
@@ -114,8 +114,8 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
 
     /// Добавляет товары в счет и распределяет их между пользователями.
     ///
-    /// Эта функция запрашивает у пользователя ввод информации о товарах, включая название, количество и цену. 
-    /// Затем она распределяет товары между пользователями на основе их выбора. 
+    /// Эта функция запрашивает у пользователя ввод информации о товарах, включая название, количество и цену.
+    /// Затем она распределяет товары между пользователями на основе их выбора.
     /// Функция продолжает запрашивать ввод до тех пор, пока пользователь не решит завершить добавление товаров.
     ///
     /// # Параметры
@@ -129,10 +129,14 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
     ///
     /// # Примечания
     ///
-    /// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена корректная информация о товарах. 
-    /// Если пользователь решает разделить товар между несколькими людьми, функция будет запрашивать, сколько 
+    /// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена корректная информация о товарах.
+    /// Если пользователь решает разделить товар между несколькими людьми, функция будет запрашивать, сколько
     /// каждый человек должен получить. Если товар полностью распределен, он добавляется в счет основного плательщика.
-    fn add_items(main_pay_index: usize, persons_vec: &mut Vec<Person>) -> Vec<BillItem> {
+    fn add_items(
+        main_pay_index: usize,
+        bill_id: String,
+        persons_vec: &mut Vec<Person>,
+    ) -> Vec<BillItem> {
         let mut items = vec![];
         loop {
             let name = get_string_not_empty(
@@ -158,26 +162,37 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
 
                 let person_count = get_number_range(
                     "Введите количество",
-                    1,
+                    1.0,
                     local_count,
                     "Ошибка при чтении значения!",
                     "Число должно быть в диапазоне",
                 );
 
-                let local_item = BillItem {
+                let item = BillItem {
                     name: name.clone(),
                     count: person_count,
-                    price: price * person_count as f64 * (1.0 / count as f64),
+                    price: price * person_count * (1.0 / count),
                 };
 
-                persons_vec[who_pay].add_bill_item(local_item);
+                persons_vec[who_pay].add_bill_item(HistoryBillItem {
+                    bill_id: bill_id.clone(),
+                    item,
+                });
                 local_count -= person_count;
 
-                if is_exit("Разделить еще?\n1.Да\n2.Нет") || local_count == 0 {
-                    persons_vec[main_pay_index].add_bill_item(BillItem {
+                if local_count == 0.0 {
+                    break;
+                }
+
+                if is_exit("Разделить еще?\n1.Да\n2.Нет") {
+                    let item = BillItem {
                         name: name.clone(),
-                        count: person_count,
-                        price: price * person_count as f64 * (1.0 / count as f64),
+                        count: local_count,
+                        price: price * local_count * (1.0 / count),
+                    };
+                    persons_vec[main_pay_index].add_bill_item(HistoryBillItem {
+                        bill_id: bill_id.clone(),
+                        item,
                     });
                     break;
                 }
@@ -242,6 +257,10 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
     }
 
     loop {
+        use uuid::Uuid;
+
+        let id = Uuid::new_v4().to_string();
+
         let who_pay = match get_person_index(persons_vec) {
             Some(index) => index,
             None => continue,
@@ -258,7 +277,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
             "Поле не должно быть пустым!",
         );
         let money_type = get_money_type();
-        let items = add_items(who_pay, persons_vec);
+        let items = add_items(who_pay, id.clone(), persons_vec);
 
         let tips = get_number_positive(
             "Введите сумму чаевых:",
@@ -268,6 +287,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
         );
 
         let bill = Bill {
+            id,
             who_pay,
             name,
             date,
@@ -286,13 +306,42 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
 pub fn take_money() {}
 
 pub fn get_money() {}
-pub fn reports(persons_vec: &Vec<Person>) {
-    loop {
-        for (index, person) in persons_vec.iter().enumerate() {
-            println!("{}.{:?}", index, person);
+pub fn reports(persons_vec: &Vec<Person>, orders_vec: &Vec<Bill>) {
+    fn report_people(persons_vec: &Vec<Person>) {
+        loop {
+            for (index, person) in persons_vec.iter().enumerate() {
+                println!("{}.{:?}", index, person);
+            }
+            if !is_exit("Назад?\n1.Да\n2.Нет") {
+                break;
+            }
         }
-        if !is_exit("Назад?\n1.Да\n2.Нет") {
-            break;
+    }
+
+    fn report_bills(orders_vec: &Vec<Bill>) {
+        loop {
+            for (index, bill) in orders_vec.iter().enumerate() {
+                println!("{}.{:?}", index, bill);
+            }
+            if !is_exit("Назад?\n1.Да\n2.Нет") {
+                break;
+            }
+        }
+    }
+
+    loop {
+        let choose = get_number_range(
+            "1.Отчет по пользователям\n2.Отчет по чекам\n3.Назад",
+            1,
+            3,
+            "Ошибка: введите корректное целое число.",
+            "Число должно быть в диапазоне",
+        );
+
+        match choose {
+            1 => report_people(&persons_vec),
+            2 => report_bills(&orders_vec),
+            _ => break,
         }
     }
 }
