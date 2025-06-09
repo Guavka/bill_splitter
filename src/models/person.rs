@@ -1,6 +1,7 @@
 use crate::models::bill::HistoryBillItem;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Person {
     id: String,
     name: String,
@@ -12,7 +13,7 @@ pub struct Person {
 impl Person {
     pub fn new(name: String, surname: String) -> Person {
         use uuid::Uuid;
-        
+
         Person {
             id: Uuid::new_v4().to_string(),
             name,

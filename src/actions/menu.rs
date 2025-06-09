@@ -3,6 +3,57 @@ use crate::models::person::Person;
 use crate::utils::io::{
     clear_console, get_number_console, get_number_positive, get_number_range, get_string_not_empty,
 };
+use crate::utils::serialize::write_vector_to_file;
+
+/// Запрашивает у пользователя выбор человека из списка и возвращает индекс выбранного человека.
+///
+/// Эта функция выводит список людей из вектора `persons_vec` и запрашивает у пользователя
+/// ввод номера выбранного человека. Если пользователь выбирает опцию для добавления нового
+/// человека, вызывается функция `add_people`, и функция возвращает `None`.
+/// В противном случае возвращается индекс выбранного человека.
+///
+/// # Параметры
+///
+/// - `persons_vec`: Изменяемая ссылка на вектор `Vec<Person>`, содержащий список людей.
+///
+/// # Возвращаемое значение
+///
+/// Возвращает `Option<usize>`, где:
+/// - `Some(usize)` — индекс выбранного человека в векторе
+/// - `None` — если пользователь выбрал опцию для добавления нового человека.
+///
+/// # Примечания
+///
+/// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получен корректный номер
+/// из меню. Если введенный номер не соответствует ни одному из существующих людей,
+/// функция будет ожидать повторного ввода.
+fn get_person_index(persons_vec: &mut Vec<Person>) -> Option<usize> {
+    println!("Кто платит?");
+    for (index, person) in persons_vec.iter().enumerate() {
+        println!(
+            "{}.{} {}",
+            index + 1,
+            person.get_name(),
+            person.get_surname()
+        );
+    }
+    println!("{}.Добавить пользователя", persons_vec.len() + 1);
+
+    let index = get_number_range(
+        "Введите номер меню:",
+        1,
+        persons_vec.len() + 1,
+        "Ошибка чтения значения",
+        "Число должно быть в диапазоне",
+    );
+
+    if index - 1 == persons_vec.len() {
+        add_people(persons_vec);
+        return None;
+    }
+
+    Some(index - 1)
+}
 
 pub fn get_menu_index(menu_items: &[&str]) -> usize {
     loop {
@@ -72,6 +123,8 @@ pub fn add_people(person_vec: &mut Vec<Person>) {
             println!("Пользователь {} {} добавлен", name, surname);
             person_vec.push(person);
         }
+
+        write_vector_to_file("persons", &*person_vec).unwrap();
 
         if is_exit("Добавить еще?\n1.Да\n2.Нет") {
             break;
@@ -199,61 +252,12 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
             }
 
             items.push(BillItem { name, count, price });
+
             if is_exit("Добавить еще продукт?\n1.Да\n2.Нет") {
                 break;
             }
         }
         items
-    }
-
-    /// Запрашивает у пользователя выбор человека из списка и возвращает индекс выбранного человека.
-    ///
-    /// Эта функция выводит список людей из вектора `persons_vec` и запрашивает у пользователя
-    /// ввод номера выбранного человека. Если пользователь выбирает опцию для добавления нового
-    /// человека, вызывается функция `add_people`, и функция возвращает `None`.
-    /// В противном случае возвращается индекс выбранного человека.
-    ///
-    /// # Параметры
-    ///
-    /// - `persons_vec`: Изменяемая ссылка на вектор `Vec<Person>`, содержащий список людей.
-    ///
-    /// # Возвращаемое значение
-    ///
-    /// Возвращает `Option<usize>`, где:
-    /// - `Some(usize)` — индекс выбранного человека в векторе
-    /// - `None` — если пользователь выбрал опцию для добавления нового человека.
-    ///
-    /// # Примечания
-    ///
-    /// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получен корректный номер
-    /// из меню. Если введенный номер не соответствует ни одному из существующих людей,
-    /// функция будет ожидать повторного ввода.
-    fn get_person_index(persons_vec: &mut Vec<Person>) -> Option<usize> {
-        println!("Кто платит?");
-        for (index, person) in persons_vec.iter().enumerate() {
-            println!(
-                "{}.{} {}",
-                index + 1,
-                person.get_name(),
-                person.get_surname()
-            );
-        }
-        println!("{}.Добавить пользователя", persons_vec.len() + 1);
-
-        let index = get_number_range(
-            "Введите номер меню:",
-            1,
-            persons_vec.len() + 1,
-            "Ошибка чтения значения",
-            "Число должно быть в диапазоне",
-        );
-
-        if index - 1 == persons_vec.len() {
-            add_people(persons_vec);
-            return None;
-        }
-
-        Some(index - 1)
     }
 
     loop {
@@ -281,7 +285,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
 
         let tips = get_number_positive(
             "Введите сумму чаевых:",
-            1.0,
+            0.0,
             "Ошибка при чтении значения!",
             "Чаевые должны быть больше 0",
         );
@@ -297,15 +301,74 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
         };
         println!("Чек создан и добавлен: {:?}", bill);
         orders_vec.push(bill);
+
+        write_vector_to_file("orders", &*orders_vec).unwrap();
+        write_vector_to_file("persons", &*persons_vec).unwrap();
+
         if is_exit("Добавить еще чек?\n1.Да\n2.Нет") {
             break;
         }
     }
 }
 
-pub fn take_money() {}
+pub fn repayment(persons_vec: &mut Vec<Person>) {
+    loop {
+        let index = match get_person_index(persons_vec) {
+            Some(index) => index,
+            None => continue,
+        };
+        let money = get_number_positive(
+            "Введите сумму:",
+            1.0,
+            "Ошибка при чтении значения!",
+            "Чаевые должны быть больше 0",
+        );
 
-pub fn get_money() {}
+        persons_vec[index].add_bill_item(HistoryBillItem {
+            bill_id: "-1".to_string(),
+            item: BillItem {
+                name: "Возврат долга".to_string(),
+                count: 1.0,
+                price: -money,
+            },
+        });
+
+        write_vector_to_file("persons", &*persons_vec).unwrap();
+        if is_exit("Списать еще долг?\n1.Да\n2.Нет") {
+            break;
+        }
+    }
+}
+
+pub fn adding_debts(persons_vec: &mut Vec<Person>) {
+    loop {
+        let index = match get_person_index(persons_vec) {
+            Some(index) => index,
+            None => continue,
+        };
+        let money = get_number_positive(
+            "Введите сумму:",
+            1.0,
+            "Ошибка при чтении значения!",
+            "Чаевые должны быть больше 0",
+        );
+
+        persons_vec[index].add_bill_item(HistoryBillItem {
+            bill_id: "-2".to_string(),
+            item: BillItem {
+                name: "Новый долг".to_string(),
+                count: 1.0,
+                price: money,
+            },
+        });
+
+        write_vector_to_file("persons", &*persons_vec).unwrap();
+        if is_exit("Добавить еще долг?\n1.Да\n2.Нет") {
+            break;
+        }
+    }
+}
+
 pub fn reports(persons_vec: &Vec<Person>, orders_vec: &Vec<Bill>) {
     fn report_people(persons_vec: &Vec<Person>) {
         loop {
