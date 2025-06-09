@@ -30,7 +30,7 @@ fn main() {
             2 => add_order(&mut orders_vec, &mut person_vec),
             3 => take_money(),
             4 => get_money(),
-            5 => reports(),
+            5 => reports(&person_vec),
             _ => return,
         }
     }

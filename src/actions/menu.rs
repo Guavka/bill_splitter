@@ -112,7 +112,27 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
         }
     }
 
-    fn add_items(persons_vec: &mut Vec<Person>) -> Vec<BillItem> {
+    /// Добавляет товары в счет и распределяет их между пользователями.
+    ///
+    /// Эта функция запрашивает у пользователя ввод информации о товарах, включая название, количество и цену. 
+    /// Затем она распределяет товары между пользователями на основе их выбора. 
+    /// Функция продолжает запрашивать ввод до тех пор, пока пользователь не решит завершить добавление товаров.
+    ///
+    /// # Параметры
+    ///
+    /// - `main_pay_index`: Индекс пользователя, который будет основным плательщиком за товары.
+    /// - `persons_vec`: Изменяемая ссылка на вектор `Vec<Person>`, содержащий список пользователей.
+    ///
+    /// # Возвращаемое значение
+    ///
+    /// Возвращает вектор `Vec<BillItem>`, содержащий добавленные товары.
+    ///
+    /// # Примечания
+    ///
+    /// Функция будет продолжать запрашивать ввод до тех пор, пока не будет получена корректная информация о товарах. 
+    /// Если пользователь решает разделить товар между несколькими людьми, функция будет запрашивать, сколько 
+    /// каждый человек должен получить. Если товар полностью распределен, он добавляется в счет основного плательщика.
+    fn add_items(main_pay_index: usize, persons_vec: &mut Vec<Person>) -> Vec<BillItem> {
         let mut items = vec![];
         loop {
             let name = get_string_not_empty(
@@ -120,7 +140,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
                 "Ошибка при чтении значения!",
                 "Поле не должно быть пустым!",
             );
-            let mut count =
+            let count =
                 get_number_console("Введите количество:", "Ошибка при чтении значения!", None);
             let price = get_number_positive(
                 "Введите сумму:",
@@ -151,10 +171,14 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
                 };
 
                 persons_vec[who_pay].add_bill_item(local_item);
-                count -= person_count;
-                local_count = count;
+                local_count -= person_count;
 
-                if is_exit("Разделить еще?\n1.Да\n2.Нет") || count == 0 {
+                if is_exit("Разделить еще?\n1.Да\n2.Нет") || local_count == 0 {
+                    persons_vec[main_pay_index].add_bill_item(BillItem {
+                        name: name.clone(),
+                        count: person_count,
+                        price: price * person_count as f64 * (1.0 / count as f64),
+                    });
                     break;
                 }
             }
@@ -234,7 +258,7 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
             "Поле не должно быть пустым!",
         );
         let money_type = get_money_type();
-        let items = add_items(persons_vec);
+        let items = add_items(who_pay, persons_vec);
 
         let tips = get_number_positive(
             "Введите сумму чаевых:",
@@ -262,4 +286,13 @@ pub fn add_order(orders_vec: &mut Vec<Bill>, persons_vec: &mut Vec<Person>) {
 pub fn take_money() {}
 
 pub fn get_money() {}
-pub fn reports() {}
+pub fn reports(persons_vec: &Vec<Person>) {
+    loop {
+        for (index, person) in persons_vec.iter().enumerate() {
+            println!("{}.{:?}", index, person);
+        }
+        if !is_exit("Назад?\n1.Да\n2.Нет") {
+            break;
+        }
+    }
+}
