@@ -14,19 +14,6 @@ pub struct PersonSettings {
     pub surname: String,
 }
 
-#[derive(Clone)]
-pub struct ShortPerson {
-    pub id: String,
-    pub name: String,
-    pub surname: String,
-}
-
-impl fmt::Display for ShortPerson {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.name, self.surname)
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Person {
     id: String,
@@ -35,7 +22,6 @@ pub struct Person {
     order_vec: Vec<HistoryBillItem>,
     credit: f32,
 }
-
 
 impl Person {
     pub fn new(settings: PersonSettings) -> Result<Person, EPersonError> {

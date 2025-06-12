@@ -20,20 +20,6 @@ pub fn clear_console() {
     }
 }
 
-pub fn get_console(msg: &str) -> String {
-    loop {
-        println!("{}", msg);
-        let mut input = String::new();
-
-        // Чтение строки из консоли
-        if io::stdin().read_line(&mut input).is_err() {
-            continue;
-        }
-
-        return input.trim().to_string();
-    }
-}
-
 /// Функция для получения значения из консоли.
 ///
 /// Эта функция использует обобщенные типы, чтобы можно было получать разные типы данных,
@@ -76,6 +62,38 @@ where
     }
 }
 
+/// Запрашивает ввод строки от пользователя и возвращает её.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед запросом ввода.
+///
+/// # Returns
+/// Возвращает строку, введённую пользователем.
+pub fn get_console(msg: &str) -> String {
+    loop {
+        println!("{}", msg); // Выводим сообщение для пользователя
+        let mut input = String::new();
+
+        // Чтение строки из консоли
+        if io::stdin().read_line(&mut input).is_err() {
+            continue; // Если произошла ошибка, продолжаем цикл
+        }
+
+        return input.trim().to_string(); // Возвращаем введённую строку без пробелов
+    }
+}
+
+/// Запрашивает у пользователя число в заданном диапазоне.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед запросом ввода.
+/// * `min_value` - Минимально допустимое значение.
+/// * `max_value` - Максимально допустимое значение.
+/// * `error_msg` - Сообщение об ошибке, если ввод не может быть распознан.
+/// * `range_msg` - Сообщение, если введённое значение вне диапазона.
+///
+/// # Returns
+/// Возвращает число типа T, которое находится в заданном диапазоне.
 pub fn get_number_range<T>(
     msg: &str,
     min_value: T,
@@ -87,14 +105,14 @@ where
     T: FromStr + Copy + PartialOrd + std::fmt::Display,
 {
     loop {
-        let input = get_console(msg);
+        let input = get_console(msg); // Получаем ввод от пользователя
 
         // Попытка парсинга введенной строки в тип T
         match input.parse::<T>() {
             Ok(value) => {
                 if value < min_value || value > max_value {
-                    println!("{} [{},{}]", range_msg, min_value, max_value);
-                    continue;
+                    println!("{} [{},{}]", range_msg, min_value, max_value); // Сообщаем о неверном диапазоне
+                    continue; // Продолжаем цикл для нового ввода
                 }
                 return value; // Возвращаем успешно полученное значение
             }
@@ -103,19 +121,29 @@ where
     }
 }
 
+/// Запрашивает у пользователя положительное число.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед запросом ввода.
+/// * `error_msg` - Сообщение об ошибке, если ввод не может быть распознан.
+/// * `min_value` - Минимально допустимое значение (должно быть положительным).
+/// * `positive_msg` - Сообщение, если введённое значение не положительное.
+///
+/// # Returns
+/// Возвращает положительное число типа T.
 pub fn get_number_positive<T>(msg: &str, error_msg: &str, min_value: T, positive_msg: &str) -> T
 where
     T: FromStr + Copy + PartialOrd,
 {
     loop {
-        let input = get_console(msg);
+        let input = get_console(msg); // Получаем ввод от пользователя
 
         // Попытка парсинга введенной строки в тип T
         match input.parse::<T>() {
             Ok(value) => {
                 if value < min_value {
-                    println!("{} ", positive_msg);
-                    continue;
+                    println!("{} ", positive_msg); // Сообщаем, что значение должно быть положительным
+                    continue; // Продолжаем цикл для нового ввода
                 }
                 return value; // Возвращаем успешно полученное значение
             }
@@ -124,27 +152,43 @@ where
     }
 }
 
+/// Запрашивает ввод строки от пользователя с возможностью проверки.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед запросом ввода.
+/// * `check_func` - Опциональная функция проверки, которая принимает ссылку на строку и возвращает `bool`.
+///
+/// # Returns
+/// Возвращает строку, введённую пользователем, если она проходит проверку.
 pub fn get_string_console(msg: &str, check_func: Option<Box<dyn Fn(&String) -> bool>>) -> String {
     loop {
-        let input = get_console(msg);
+        let input = get_console(msg); // Получаем ввод от пользователя
 
         // Если предоставлена функция проверки, вызываем её
         if let Some(ref func) = check_func {
             if !func(&input) {
-                continue;
+                continue; // Если проверка не прошла, продолжаем цикл для нового ввода
             }
         }
         return input; // Возвращаем успешно полученное значение
     }
 }
 
+/// Запрашивает ввод строки от пользователя и проверяет, что она не пустая.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед запросом ввода.
+/// * `empty_msg` - Сообщение, которое будет отображено, если введённая строка пустая.
+///
+/// # Returns
+/// Возвращает непустую строку, введённую пользователем.
 pub fn get_string_not_empty(msg: &str, empty_msg: &str) -> String {
     loop {
-        let input = get_console(msg);
+        let input = get_console(msg); // Получаем ввод от пользователя
 
         if input.is_empty() {
-            println!("{}", empty_msg);
-            continue;
+            println!("{}", empty_msg); // Сообщаем, что строка не должна быть пустой
+            continue; // Продолжаем цикл для нового ввода
         }
 
         return input; // Возвращаем успешно полученное значение

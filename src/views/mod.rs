@@ -1,3 +1,3 @@
 pub mod main_menu;
-pub mod view_utils;
-pub mod persons;
+mod view_utils;
+mod persons;

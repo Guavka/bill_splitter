@@ -1,16 +1,30 @@
 use crate::utils::console_io::get_number_range;
 use std::fmt::Display;
 
+/// Отображает меню с заданным сообщением и пунктами меню.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед меню.
+/// * `menu_items` - Срез элементов, которые будут отображены как пункты меню.
 pub fn show_menu<T: Display>(msg: &str, menu_items: &[T]) {
-    println!("{}", msg);
+    println!("{}", msg); // Выводим сообщение
     for (index, value) in menu_items.iter().enumerate() {
-        println!("{}.{}", index + 1, value);
+        println!("{}. {}", index + 1, value); // Выводим каждый пункт меню с его индексом
     }
 }
 
+/// Получает индекс выбранного пункта меню от пользователя.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед меню.
+/// * `menu_items` - Срез элементов, которые будут отображены как пункты меню.
+///
+/// # Returns
+/// Возвращает индекс выбранного пункта меню (начиная с 1).
 pub fn get_index<T: Display>(msg: &str, menu_items: &[T]) -> usize {
-    show_menu(msg, menu_items);
+    show_menu(msg, menu_items); // Отображаем меню
 
+    // Запрашиваем у пользователя ввод числа в заданном диапазоне
     get_number_range(
         "Выберите пункт меню:",
         1,
@@ -20,10 +34,21 @@ pub fn get_index<T: Display>(msg: &str, menu_items: &[T]) -> usize {
     )
 }
 
+/// Получает индекс выбранного пункта меню от пользователя с возможностью выхода.
+///
+/// # Arguments
+/// * `msg` - Сообщение, которое будет отображено перед меню.
+/// * `null_msg` - Сообщение, которое будет отображено для выхода из меню.
+/// * `menu_items` - Срез элементов, которые будут отображены как пункты меню.
+///
+/// # Returns
+/// Возвращает `Some(usize)` с индексом выбранного пункта меню (начиная с 1),
+/// или `None`, если пользователь выбрал пункт выхода.
 pub fn get_index_null<T: Display>(msg: &str, null_msg: &str, menu_items: &[T]) -> Option<usize> {
-    show_menu(msg, menu_items);
-    println!("{}.{}", menu_items.len() + 1, null_msg);
+    show_menu(msg, menu_items); // Отображаем меню
+    println!("{}. {}", menu_items.len() + 1, null_msg); // Выводим пункт выхода
 
+    // Запрашиваем у пользователя ввод числа в заданном диапазоне
     let index = get_number_range(
         "Выберите пункт меню:",
         1,
@@ -31,9 +56,11 @@ pub fn get_index_null<T: Display>(msg: &str, null_msg: &str, menu_items: &[T]) -
         "Ошибка: введите корректное целое число.",
         "Число должно быть в диапазоне",
     );
+
+    // Проверяем, выбрал ли пользователь пункт выхода
     if index == menu_items.len() + 1 {
-        return None;
+        return None; // Возвращаем None, если выбран пункт выхода
     }
-    Some(index)
+    Some(index) // Возвращаем индекс выбранного пункта меню
 }
 

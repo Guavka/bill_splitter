@@ -2,19 +2,26 @@ use crate::utils::console_io::clear_console;
 use crate::views::persons::person_menu::person_menu;
 use crate::views::view_utils::view_utils::get_index_null;
 
+/// Отображает главное меню приложения и обрабатывает выбор пользователя.
+///
+/// Главное меню содержит опции для работы с пользователями, чеками и отчетами.
+/// Пользователь может выбрать одну из опций или выйти из приложения.
 pub fn main_menu() {
+    // Определяем названия пунктов меню
     let menu_names: [&str; 3] = ["Пользователи", "Чеки", "Отчеты"];
 
     loop {
-        clear_console();
+        clear_console(); // Очищаем консоль перед отображением меню
 
+        // Получаем индекс выбранного пункта меню или None для выхода
         let index = get_index_null("Добро пожаловать!", "Выход", &menu_names);
         match index {
             Some(index) => match index {
-                1 => person_menu(),
-                _ => {}
+                1 => person_menu(), // Если выбран пункт "Пользователи", вызываем person_menu
+                _ => {} // Для других пунктов меню ничего не делаем (можно добавить логику позже)
             },
-            None => return,
+            None => return, // Если пользователь выбрал "Выход", выходим из функции
         }
     }
 }
+
