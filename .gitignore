@@ -1,4 +1,4 @@
 /target
-src/services/save_load/mock/mock.rs
 /orders
 /persons
+/src/store/models/mock
