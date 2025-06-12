@@ -20,7 +20,7 @@ pub struct HistoryBillItem {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Bill {
+pub struct Order {
     pub id: String,
     pub who_pay: usize,
     pub name: String,

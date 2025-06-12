@@ -1,0 +1,152 @@
+use std::io;
+use std::process::Command;
+use std::str::FromStr;
+
+/// Функция для очистки консоли.
+///
+/// Эта функция очищает консольный экран в зависимости от операционной системы.
+pub fn clear_console() {
+    if cfg!(target_os = "windows") {
+        // Для Windows
+        Command::new("cmd")
+            .args(&["/C", "cls"])
+            .status()
+            .expect("Не удалось очистить консоль");
+    } else {
+        // Для Unix-подобных систем (Linux, macOS)
+        Command::new("clear")
+            .status()
+            .expect("Не удалось очистить консоль");
+    }
+}
+
+pub fn get_console(msg: &str) -> String {
+    loop {
+        println!("{}", msg);
+        let mut input = String::new();
+
+        // Чтение строки из консоли
+        if io::stdin().read_line(&mut input).is_err() {
+            continue;
+        }
+
+        return input.trim().to_string();
+    }
+}
+
+/// Функция для получения значения из консоли.
+///
+/// Эта функция использует обобщенные типы, чтобы можно было получать разные типы данных,
+/// такие как `u8` или `f64`, при условии, что тип реализует трейт `std::str::FromStr`.
+///
+/// # Аргументы
+///
+/// * `msg` - Сообщение, которое будет выведено пользователю перед вводом значения.
+/// * `error_msg` - Сообщение, которое будет выведено в случае ошибки при вводе.
+/// * `check_func` - Необязательная функция для дополнительной проверки введенного значения.
+///
+/// # Возвращаемое значение
+///
+/// Возвращает значение типа `T`, которое было введено пользователем и успешно обработано.
+pub fn get_number_console<T>(
+    msg: &str,
+    error_msg: &str,
+    check_func: Option<Box<dyn Fn(T) -> bool>>,
+) -> T
+where
+    T: FromStr + Copy,
+{
+    loop {
+        let input = get_console(msg);
+
+        // Попытка парсинга введенной строки в тип T
+        match input.parse::<T>() {
+            Ok(value) => {
+                // Если предоставлена функция проверки, вызываем её
+                if let Some(ref func) = check_func {
+                    if !func(value) {
+                        // Вызываем функцию
+                        continue;
+                    }
+                }
+                return value; // Возвращаем успешно полученное значение
+            }
+            Err(_) => println!("{}", error_msg), // Обработка ошибки парсинга
+        }
+    }
+}
+
+pub fn get_number_range<T>(
+    msg: &str,
+    min_value: T,
+    max_value: T,
+    error_msg: &str,
+    range_msg: &str,
+) -> T
+where
+    T: FromStr + Copy + PartialOrd + std::fmt::Display,
+{
+    loop {
+        let input = get_console(msg);
+
+        // Попытка парсинга введенной строки в тип T
+        match input.parse::<T>() {
+            Ok(value) => {
+                if value < min_value || value > max_value {
+                    println!("{} [{},{}]", range_msg, min_value, max_value);
+                    continue;
+                }
+                return value; // Возвращаем успешно полученное значение
+            }
+            Err(_) => println!("{}", error_msg), // Обработка ошибки парсинга
+        }
+    }
+}
+
+pub fn get_number_positive<T>(msg: &str, error_msg: &str, min_value: T, positive_msg: &str) -> T
+where
+    T: FromStr + Copy + PartialOrd,
+{
+    loop {
+        let input = get_console(msg);
+
+        // Попытка парсинга введенной строки в тип T
+        match input.parse::<T>() {
+            Ok(value) => {
+                if value < min_value {
+                    println!("{} ", positive_msg);
+                    continue;
+                }
+                return value; // Возвращаем успешно полученное значение
+            }
+            Err(_) => println!("{}", error_msg), // Обработка ошибки парсинга
+        }
+    }
+}
+
+pub fn get_string_console(msg: &str, check_func: Option<Box<dyn Fn(&String) -> bool>>) -> String {
+    loop {
+        let input = get_console(msg);
+
+        // Если предоставлена функция проверки, вызываем её
+        if let Some(ref func) = check_func {
+            if !func(&input) {
+                continue;
+            }
+        }
+        return input; // Возвращаем успешно полученное значение
+    }
+}
+
+pub fn get_string_not_empty(msg: &str, empty_msg: &str) -> String {
+    loop {
+        let input = get_console(msg);
+
+        if input.is_empty() {
+            println!("{}", empty_msg);
+            continue;
+        }
+
+        return input; // Возвращаем успешно полученное значение
+    }
+}
