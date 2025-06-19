@@ -10,12 +10,12 @@ use crate::views::view_utils::view_utils::get_index_null;
 /// и предоставляет пользователю возможность подтвердить или отменить действие.
 ///
 /// # Параметры
-/// - `person`: Ссылка на объект `ShortPerson`, представляющий пользователя, которого необходимо удалить.
+/// - `person`: Ссылка на объект `&ShortPerson`, представляющий пользователя, которого необходимо удалить.
 ///
 /// # Примечания
 /// - Используется `get_index_null` для получения индекса выбранного пункта меню.
 /// - При выборе "Назад" происходит выход из функции.
-pub fn remove_person_menu(person: ShortPerson) {
+pub fn remove_person_menu(person: &ShortPerson) {
     // Определяем названия пунктов меню
     let menu_names: [&str; 1] = ["Да"];
 
@@ -41,4 +41,3 @@ pub fn remove_person_menu(person: ShortPerson) {
         }
     }
 }
-

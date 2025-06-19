@@ -6,7 +6,7 @@ use std::fmt::Formatter;
 #[derive(Debug)]
 pub enum EPersonError {
     EmptyName,
-    EmptySurname,
+    EmptySurname
 }
 
 pub struct PersonSettings {
@@ -52,6 +52,7 @@ impl Person {
         if name.is_empty() {
             return Err(EPersonError::EmptyName);
         }
+
 
         self.name = name;
 

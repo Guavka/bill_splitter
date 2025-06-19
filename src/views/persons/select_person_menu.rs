@@ -1,14 +1,15 @@
+use crate::store::models::person::short_person::ShortPerson;
 use crate::utils::console_io::clear_console;
 use crate::views::persons::edit_person_menu::edit_person_menu;
 use crate::views::persons::remove_person_menu::remove_person_menu;
 use crate::views::view_utils::view_utils::get_index_null;
 
-
-pub fn select_person_menu() {
+pub fn select_person_menu(person: &ShortPerson) {
     // Определяем названия пунктов меню
     let menu_names: [&str; 2] = ["Редактировать", "Удалить"];
+
     // Формируем сообщение с именем пользователя
-    let msg = format!("Пользователь `{}`", &person);
+    let msg = format!("Пользователь `{}`", person);
 
     loop {
         clear_console(); // Очищаем консоль перед отображением меню
@@ -18,10 +19,13 @@ pub fn select_person_menu() {
         match index {
             Some(index) => match index {
                 // Если выбран пункт "Редактировать", вызываем соответствующую функцию
-                1 => edit_person_menu(person.clone()),
+                1 => {
+                    edit_person_menu(person);
+                    return;
+                }
                 // Если выбран пункт "Удалить", вызываем функцию для удаления пользователя и выходим
                 2 => {
-                    remove_person_menu(person.clone());
+                    remove_person_menu(person);
                     return;
                 }
                 _ => {} // Игнорируем любые другие значения
@@ -31,4 +35,3 @@ pub fn select_person_menu() {
         }
     }
 }
-

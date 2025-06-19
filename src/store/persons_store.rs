@@ -26,7 +26,7 @@ impl PersonsStore {
     ///
     /// # Returns
     /// Вектор `Vec<ShortPerson>` с краткой информацией о каждом пользователе.
-    pub fn get_persons(&self) -> Vec<ShortPerson> {
+    pub fn get_persons_short(&self) -> Vec<ShortPerson> {
         self.state
             .values()
             .map(|person| ShortPerson {
@@ -37,17 +37,10 @@ impl PersonsStore {
             .collect()
     }
 
-    /// Проверяет, существует ли пользователь с таким же именем и фамилией.
-    ///
-    /// # Arguments
-    /// * `person` - Ссылка на объект `Person`, который нужно проверить.
-    ///
-    /// # Returns
-    /// `true`, если пользователь существует, иначе `false`.
-    pub fn is_exits(&self, person: &Person) -> bool {
-        self.state.values().any(|value| {
-            value.get_surname() == person.get_surname() && value.get_name() == person.get_name()
-        })
+    pub fn is_exits(&self, name: String, surname: String) -> bool {
+        self.state
+            .values()
+            .any(|value| value.get_surname() == surname && value.get_name() == name)
     }
 
     /// Получает пользователя по его уникальному идентификатору.
@@ -57,8 +50,8 @@ impl PersonsStore {
     ///
     /// # Returns
     /// `Option<&Person>` - `Some(&Person)` если пользователь найден, иначе `None`.
-    pub fn get_person(&mut self, id: String) -> Option<&mut Person> {
-        self.state.get_mut(&id)
+    pub fn get_person(&mut self, id: &String) -> Option<&mut Person> {
+        self.state.get_mut(id)
     }
 
     /// Удаляет пользователя по его уникальному идентификатору.
@@ -100,5 +93,5 @@ impl PersonsStore {
 
 /// Получает доступ к единственному экземпляру `PersonsStore` с блокировкой.
 pub fn use_person_store() -> MutexGuard<'static, PersonsStore> {
-    SINGLETON.lock().unwrap() // Блокируем мьютекс и возвращаем доступ к `PersonsStore`
+    SINGLETON.try_lock().unwrap()
 }

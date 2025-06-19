@@ -20,7 +20,7 @@ pub fn persons_list_menu() {
         // Получаем список пользователей из хранилища
         let array = {
             let store = use_person_store();
-            store.get_persons()
+            store.get_persons_short()
         };
 
         // Запрашиваем у пользователя выбор пользователя из списка
@@ -29,10 +29,9 @@ pub fn persons_list_menu() {
             Some(index) => {
                 // Вызываем меню действий для выбранного пользователя.
                 // Обратите внимание, что index начинается с 1, поэтому вычитаем 1 для доступа по индексу массива
-                select_person_menu(array[index - 1].clone());
+                select_person_menu(&array[index - 1]);
             }
             None => return, // Если пользователь выбрал "Назад", выходим из функции
         };
     }
 }
-

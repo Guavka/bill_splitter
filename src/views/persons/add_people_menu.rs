@@ -13,8 +13,6 @@ use crate::views::view_utils::view_utils::get_index_null;
 /// - Функция использует `use_person_store` для получения доступа к хранилищу пользователей.
 /// - В случае ошибки при создании нового человека, выводится соответствующее сообщение об ошибке.
 pub fn add_people_menu() {
-    // Получаем доступ к хранилищу пользователей
-    let mut store = use_person_store();
     clear_console(); // Очищаем консоль перед выводом меню
 
     loop {
@@ -23,7 +21,10 @@ pub fn add_people_menu() {
         let surname = get_console("Введите фамилию:");
 
         // Создаем нового человека с введенными данными
-        let person = match Person::new(PersonSettings { name, surname }) {
+        let person = match Person::new(PersonSettings {
+            name: name.clone(),
+            surname: surname.clone(),
+        }) {
             Ok(person) => person, // Успешное создание человека
             Err(error) => {
                 // Обработка ошибок при создании человека
@@ -36,20 +37,20 @@ pub fn add_people_menu() {
         };
 
         // Проверяем, существует ли уже пользователь с таким именем и фамилией
-        if store.is_exits(&person) {
-            println!("Такой пользователь уже существует");
-            continue; // Возвращаемся в начало цикла для добавления нового человека
+        {
+            let mut store = use_person_store();
+            if store.is_exits(name.clone(), surname.clone()) {
+                println!("Такой пользователь уже существует");
+                continue; // Возвращаемся в начало цикла для добавления нового человека
+            }
+            // Выводим сообщение о добавлении пользователя
+            println!(
+                "Пользователь {} {} добавлен",
+                person.get_name(),
+                person.get_surname()
+            );
+            store.add_person(person);
         }
-
-        // Выводим сообщение о добавлении пользователя
-        println!(
-            "Пользователь {} {} добавлен",
-            person.get_name(),
-            person.get_surname()
-        );
-
-        // Добавляем нового человека в хранилище
-        store.add_person(person);
 
         // Определяем варианты для меню
         let menu_names: [&str; 1] = ["Да"];
