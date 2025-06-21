@@ -2,10 +2,12 @@ mod services;
 mod store;
 mod utils;
 mod views;
-use crate::views::main_menu::main_menu;
+
+use crate::views::init_views;
 
 pub const IS_DEBUG: bool = true;
 
 fn main() {
-    main_menu();    
+    let menu = init_views();
+    menu.show()
 }
