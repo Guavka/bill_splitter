@@ -3,6 +3,15 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+#[derive(Debug)]
+pub enum EPersonErrors {
+    EmptyName,
+    InvalidName,
+    EmptySurname,
+    InvalidSurname,
+    InvalidAmount,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Person {
     id: String,
@@ -11,19 +20,18 @@ pub struct Person {
     accounts: HashMap<String, f64>, // Вектор счетов представлен как словарь
 }
 impl Person {
-    pub fn new(first_name: &str, last_name: &str) -> Self {
+    pub fn new(first_name: &str, last_name: &str) -> Result<Self, EPersonErrors> {
         let id = Self::generate_id(first_name, last_name);
-        Person {
+        let mut person = Person {
             id,
-            first_name: first_name.to_string(),
-            last_name: last_name.to_string(),
+            first_name: String::new(),
+            last_name: String::new(),
             accounts: HashMap::new(),
-        }
-    }
-    pub fn generate_id(first_name: &str, last_name: &str) -> String {
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        (first_name, last_name).hash(&mut hasher);
-        hasher.finish().to_string() // Генерация id через hash-функцию
+        };
+        person.change_first_name(first_name.to_string())?;
+        person.change_last_name(last_name.to_string())?;
+
+        Ok(person)
     }
 
     pub fn get_id(&self) -> String {
@@ -33,33 +41,66 @@ impl Person {
         self.first_name.clone()
     }
 
-    pub fn change_first_name(&mut self, new_first_name: String) -> Option<()> {
-        if new_first_name.is_empty() {
-            return None;
+    fn check_name(name: String) -> Result<String, EPersonErrors> {
+        if name.is_empty() {
+            return Err(EPersonErrors::EmptyName);
         }
-        self.first_name = new_first_name;
-        Some(())
+        if !name.chars().next().unwrap().is_alphabetic() {
+            return Err(EPersonErrors::InvalidName);
+        }
+        Ok(name)
     }
 
-    pub fn change_last_name(&mut self, new_last_name: String) -> Option<()> {
-        if new_last_name.is_empty() {
-            return None;
-        }
-        self.last_name = new_last_name;
-        Some(())
+    pub fn change_first_name(&mut self, new_first_name: String) -> Result<String, EPersonErrors> {
+        self.first_name = Self::check_name(new_first_name.clone())?;
+        Ok(new_first_name)
     }
 
     pub fn get_last_name(&self) -> String {
         self.last_name.clone()
+    }
+    pub fn change_last_name(&mut self, new_last_name: String) -> Result<String, EPersonErrors> {
+        self.last_name = Person::check_name(new_last_name.clone())?;
+        Ok(new_last_name)
     }
 
     pub fn get_accounts(&self) -> HashMap<String, f64> {
         self.accounts.clone()
     }
 
-    pub fn change_account(&mut self, name: String, value: f64) -> Option<()> {
-        self.accounts.insert(name, value);
-        Some(())
+    pub fn increase_account(&mut self, id: String, amount: f64) -> Result<f64, EPersonErrors> {
+        if amount < 1f64 {
+            return Err(EPersonErrors::InvalidAmount);
+        }
+        match self.accounts.get(&id) {
+            None => self.accounts.insert(id, amount),
+            Some(value) => self.accounts.insert(id, value + amount),
+        };
+        Ok(amount)
+    }
+
+    pub fn decrease_account(&mut self, id: String, amount: f64) -> Result<f64, EPersonErrors> {
+        if amount < 1f64 {
+            return Err(EPersonErrors::InvalidAmount);
+        }
+        match self.accounts.get(&id) {
+            None => self.accounts.insert(id, amount),
+            Some(value) => self.accounts.insert(id, value - amount),
+        };
+        Ok(amount)
+    }
+
+    fn generate_id(first_name: &str, last_name: &str) -> String {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        (first_name, last_name).hash(&mut hasher);
+        hasher.finish().to_string() // Генерация id через hash-функцию
+    }
+}
+
+// Реализация PartialEq для сравнения только по имени и фамилии
+impl PartialEq for Person {
+    fn eq(&self, other: &Self) -> bool {
+        self.first_name == other.first_name && self.last_name == other.last_name
     }
 }
 
