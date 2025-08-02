@@ -19,9 +19,11 @@ pub struct PersonsStore {
 impl PersonsStore {
     // Getter (computed property)
 
-    pub fn is_exist(&self, first_name: String, last_name: String) -> bool {
+    pub fn is_exist(&self, other: &Person) -> bool {
         self.state.values().any(|person| {
-            person.get_last_name() == last_name && person.get_first_name() == first_name
+            person.get_id() == other.get_id()
+                && person.get_last_name() == other.get_last_name()
+                && person.get_first_name() == other.get_first_name()
         })
     }
     pub fn get_person(&self, id: String) -> Result<&Person, EPersonsStoreErrors> {
@@ -43,6 +45,7 @@ impl PersonsStore {
         match self.state.get(&person.get_id()) {
             None => {
                 self.state.insert(person.get_id(), person);
+                self.save_persons();
                 Ok(())
             }
             Some(_) => Err(EPersonsStoreErrors::AlreadyExist),

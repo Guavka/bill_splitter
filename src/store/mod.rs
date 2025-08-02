@@ -1,3 +1,3 @@
 pub mod person_store;
-mod models;
+pub mod models;
 mod mock;
