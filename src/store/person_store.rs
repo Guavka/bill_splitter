@@ -31,7 +31,7 @@ impl PersonsStore {
         }
     }
 
-    pub fn get_persons(&self) -> Vec<ShortPerson> {
+    pub fn get_short_info(&self) -> Vec<ShortPerson> {
         let mut persons_vec = vec![];
         for person in self.state.values() {
             persons_vec.push(ShortPerson::from_person(person));
@@ -60,7 +60,7 @@ impl PersonsStore {
         }
     }
 
-    fn save_persons(&self) {
+    pub fn save_persons(&self) {
         write_hashmap_to_file(FILE_NAME, &self.state).unwrap();
     }
 
